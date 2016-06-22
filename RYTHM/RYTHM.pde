@@ -1,80 +1,131 @@
+import ddf.minim.*;
 import processing.serial.*;
-import java.util.LinkedList;
-import java.time.*;
 
-// Dernières positions et heure du changement
-int lastPos1, lastPos2, lastPos3;
-Instant lastTime1, lastTime2, lastTime3;
-
-// Listes des dernières positions et temps d'intervale enregistrées
-LinkedList<Integer> prevPos1, prevPos2, prevPos3;
-LinkedList<Duration> prevInterval1, prevInterval2, prevInterval3;
-int maxLength = 10;
-
-// Variable de maj
-int newPos1, newPos2, newPos3;
-Instant newTime;
-
-Serial myPort;  // Create object from Serial class
-String valSerial;     // Data received from the serial port
+Cadran cadA, cadB, cadC;
+Serial myPort;
+String valSerial;
+int newPos;
+Minim minim;
+AudioPlayer playerA, playerB, playerC, playerD;
 
 void setup() {
-  size(600, 400);
-
-  lastPos1 = lastPos2 = lastPos3 = 1;
-  lastTime1 = lastTime2 = lastTime3 = Instant.now();
-  prevPos1 = new LinkedList<Integer>();
-  prevPos2 = new LinkedList<Integer>();
-  prevPos3 = new LinkedList<Integer>();
-  prevInterval1 = new LinkedList<Duration>();
-  prevInterval2 = new LinkedList<Duration>();
-  prevInterval3 = new LinkedList<Duration>();
+  //size(900, 450);
+  fullScreen();
+  cadA = new Cadran();
+  cadB = new Cadran();
+  cadC = new Cadran();
 
   String portName = Serial.list()[0]; //change the 0 to a 1 or 2 etc. to match your port
   myPort = new Serial(this, portName, 9600);
+  
+  minim = new Minim(this);
+  playerA = minim.loadFile("Hajimemashite/Alto.mp3");
+  playerA.loop();
+  
+  playerB = minim.loadFile("Hajimemashite/Chant.mp3");
+  playerB.loop();
+  playerB.setGain(-30);
+  playerC = minim.loadFile("Hajimemashite/Basse.mp3");
+  playerC.loop();
+  playerC.setGain(-30);
+  playerD = minim.loadFile("Hajimemashite/Soprano.mp3");
+  playerD.loop();
+  playerD.setGain(-30);
+  
 }
 
 void draw() {
-  newPos1 = newPos2 = newPos3 = -1;
-  newTime = Instant.now();
-
   //Lecture Arduino
   if ( myPort.available() > 0) 
   {
     valSerial = myPort.readStringUntil('\n');
     if (valSerial != null) {
       valSerial = valSerial.trim();
-      newPos1 = Integer.parseInt(valSerial);
+      if(valSerial.matches(".\\d+")){
+        newPos = Integer.parseInt(valSerial.substring(1));
+      }
+      
+      if(valSerial.charAt(0)=='A'){
+        cadA.newInput(newPos);
+      }
+      else if(valSerial.charAt(0)=='B'){
+        cadB.newInput(newPos);
+      }
+      else if(valSerial.charAt(0)=='C'){
+        cadC.newInput(newPos);
+      }
     }
   } 
-
-  //MAJ Listes
-  if (newPos1 != -1 && newPos1 != lastPos1) {
-    Duration newDur = Duration.between(lastTime1, newTime);
-
-    if (prevPos1.size() >= maxLength && prevInterval1.size() >= maxLength) {
-      prevPos1.removeFirst();
-      prevInterval1.removeFirst();
-    }
-    prevPos1.add(newPos1);
-    prevInterval1.add(newDur);
-
-    lastPos1 = newPos1;
-    lastTime1 = Instant.now();
-
-    long DurTotal=1;
-    for (Duration d : prevInterval1) {
-      DurTotal += d.toMillis();
-    }
-    if (prevInterval1.size()!=0) {
-      println(DurTotal/prevInterval1.size());
-    }
-  }
+  
+  float rythmA = min(2, cadA.vitesseMoyenne());
+  print(rythmA+" - ");
+  rythmA = (int) map(rythmA, 0, 2, -30, 0);
+  println(rythmA);
+  playerA.setGain(rythmA);
+  
+  float distAB = 0-abs(cadA.ecartAvec(cadB)*5);
+  playerB.setGain(min(rythmA,distAB));
+  
+  float distAC = 0-abs(cadA.ecartAvec(cadC)*5);
+  playerC.setGain(min(rythmA,distAC));
+  
+  //float distBC = 0-abs(cadB.ecartAvec(cadC)*5);
+  //playerD.setGain(distBC);
 
 
+  clear();/*
+  textSize(50);
+  background(50);
+  
+    
+  fill(210,210,210);
+  rect(75, 280, 600, 20,10);
+  
+  fill(90,181,204);
+  rect(75, 40, 600, 20,10);
+  ellipse(100+50*cadA.getLastPos(), 50, 50, 50);
+  ellipse(100+50*cadA.getLastPos(), 270, 50, 50);
+  text("A", 25,70); 
+  text(cadA.vitesseMoyenne(), 700, 70);
+  
+  fill(255,138,179);
+  rect(75, 120, 600, 20,10);
+  ellipse(100+50*cadB.getLastPos(), 130, 50, 50);
+  ellipse(100+50*cadB.getLastPos(), 290, 50, 50);
+  text("B", 25,150); 
+  
+  fill(255,247,164);
+  rect(75, 200, 600, 20,10);
+  ellipse(100+50*cadC.getLastPos(), 210, 50, 50);
+  ellipse(100+50*cadC.getLastPos(), 310, 50, 50);
+  text("C", 25,230); */
+  
+  
+  textSize(100);
+  background(50);
+  
+    
+  fill(210,210,210);
+  rect(150, 560, 1200, 40,20);
+  
+  fill(180,362,408);
+  rect(150, 80, 1200, 40,20);
+  ellipse(200+100*cadA.getLastPos(), 100, 100, 100);
+  ellipse(200+100*cadA.getLastPos(), 540, 100, 100);
+  text("A", 50,140); 
+  text(cadA.vitesseMoyenne(), 1400, 140);
+  
+  fill(255,138,179);
+  rect(75, 120, 600, 20,10);
+  ellipse(100+50*cadB.getLastPos(), 130, 50, 50);
+  ellipse(100+50*cadB.getLastPos(), 290, 50, 50);
+  text("B", 25,150); 
+  
+  fill(255,247,164);
+  rect(75, 200, 600, 20,10);
+  ellipse(100+50*cadC.getLastPos(), 210, 50, 50);
+  ellipse(100+50*cadC.getLastPos(), 310, 50, 50);
+  text("C", 25,230); 
 
-  clear();
-  background(255, 204, 0);
-  rect(50, 50, 500, 50);
-  ellipse(25+50*lastPos1, 75, 50, 50);
+  
 }

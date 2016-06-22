@@ -22,8 +22,12 @@ int irqpin = 2;
 
 // Keeps track of the last pins touched
 // so we know when buttons are 'released'
-uint16_t lasttouched = 0;
-uint16_t currtouched = 0;
+uint16_t lasttouchedA = 0;
+uint16_t currtouchedA = 0;
+uint16_t lasttouchedB = 0;
+uint16_t currtouchedB = 0;
+uint16_t lasttouchedC = 0;
+uint16_t currtouchedC = 0;
 
 //Servomoteurs
 Servo servoA;
@@ -37,35 +41,81 @@ int servoCpin = 11;
 void setup() {
   Serial.begin(9600);
 
-  Serial.println("Initialisation MPR121 Capacitive Touch sensor");
-  capA.begin(capAaddr);
+  Serial.println("---Initialisation MPR121 Capacitive Touch sensor");
+  boolean ok = false;
+  if(!capA.begin(capAaddr)){
+    Serial.println("capA not found !");
+  } else {
+    Serial.println("capA ok !");
+  }
+  
+  if(!capB.begin(capBaddr)){
+    Serial.println("capB not found !");
+  } else {
+    Serial.println("capB ok !");
+  }
+
+  if(!capC.begin(capCaddr)){
+    Serial.println("capC not found !");
+  } else {
+    Serial.println("capC ok !");
+  }
 
   servoA.attach(9);
+  servoB.attach(10);
+  servoC.attach(11);
 
   pinMode(irqpin, INPUT);
   digitalWrite(irqpin, HIGH); //enable pullup resistor
-  Serial.println("Fin du setup");
+  Serial.println("---Setup end");
 }
 
 void loop() {
   if (!checkInterrupt()) {
     // Get the currently touched pads
-    currtouched = capA.touched();
+    currtouchedA = capA.touched();
 
     for (uint8_t i = 0; i < 12; i++) {
       // it if *is* touched and *wasnt* touched before, alert!
-      if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
-        Serial.print(i); Serial.println(" touched");
-        servoA.write(map(i, 0, 11, 0, 180));
+      if ((currtouchedA & _BV(i)) && !(lasttouchedA & _BV(i)) ) {
+        Serial.print("A");
+        Serial.println(11-i);
+        servoA.write(map(11-i, 0, 11, 0, 180));
       }
       // if it *was* touched and now *isnt*, alert!
-      if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-        Serial.print(i); Serial.println(" released");
+      if (!(currtouchedA & _BV(i)) && (lasttouchedA & _BV(i)) ) {
+        //Serial.print(i); Serial.println(" released");
       }
     }
 
     // reset our state
-    lasttouched = currtouched;
+    lasttouchedA = currtouchedA;
+
+
+    currtouchedB = capB.touched();
+    for (uint8_t i = 0; i < 12; i++) {
+      if ((currtouchedB & _BV(i)) && !(lasttouchedB & _BV(i)) ) {
+        Serial.print("B");
+        Serial.println(i);
+        servoB.write(map(i, 0, 11, 0, 180));
+      }
+      if (!(currtouchedB & _BV(i)) && (lasttouchedB & _BV(i)) ) {
+      }
+    }
+    lasttouchedB = currtouchedB;
+
+    currtouchedC = capC.touched();
+    for (uint8_t i = 0; i < 12; i++) {
+      if ((currtouchedC & _BV(i)) && !(lasttouchedC & _BV(i)) ) {
+        Serial.print("C");
+        Serial.println(11-i);
+        servoC.write(map(11-i, 0, 11, 0, 180));
+      }
+      if (!(currtouchedC & _BV(i)) && (lasttouchedC & _BV(i)) ) {
+      }
+    }
+    lasttouchedC = currtouchedC;
+    
   }
   delay(50);
 }
